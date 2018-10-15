@@ -1,0 +1,10 @@
+import sys
+sys.path.insert(0, './lib')
+from my_crypto_lib import *
+
+import os
+from random import randint
+
+with open("./txt/10.txt") as f:
+    b64=f.read()
+

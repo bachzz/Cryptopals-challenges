@@ -31,6 +31,7 @@ def unpad_pkcs7(string):
 	pad_byte=string[-1]
 	if ord(pad_byte) >= AES.block_size:
 		return string
+		#raise Exception("Bad PKCS#7 padding.")
 	for i in range(len(string)-1,len(string)-ord(pad_byte),-1):
 		if string[i]!=string[i-1]:
 			raise Exception("Bad PKCS#7 padding.")
@@ -38,17 +39,29 @@ def unpad_pkcs7(string):
 	if string[-1]==pad_byte:
 		raise Exception("Bad PKCS#7 padding.")
 	return string
+	'''padding = buffer[-1]
+	if padding >= AES.block_size:                  
+		return buffer  
+	for i in range(len(buffer)-1, len(buffer)-padding, -1):
+		if buffer[i] != buffer[-1]:
+			raise Exception("Bad PKCS#7 padding.")
+	new_buffer = bytearray()
+	new_buffer[:] = buffer[:-padding]
+	return new_buffer'''
 
 def aes_cbc_enc(aes_type,plaintext,key,IV): # return hex
 	bytes_size=aes_type/8
 	# encrypt 1st block with IV  
 	# ciphertext_block_1 = aes_ecb_enc(plaintext_block_1 XOR IV,key) 
-	block=plaintext[0:bytes_size]
+	#block=plaintext[0:bytes_size]
+	block = pkcs7_padding(plaintext[0:bytes_size])
 		# conversion
-	block_hex=ascii_to_hex(block)
-	IV_hex=ascii_to_hex(IV)
-	block_XOR=fixed_XOR(IV_hex,block_hex).zfill(len(IV_hex))
-	block_XOR_ascii=hex_to_ascii(block_XOR)
+	# block_hex=ascii_to_hex(block)
+	# IV_hex=ascii_to_hex(IV)
+	# #print len(block_hex), len(IV_hex)
+	# block_XOR=fixed_XOR(IV_hex,block_hex).zfill(len(IV_hex))
+	# block_XOR_ascii=hex_to_ascii(block_XOR)
+	block_XOR_ascii = xor(block,IV)
 	ciphertext1=aes_ecb_enc(block_XOR_ascii,key)
 	ciphertext1_hex=ascii_to_hex(ciphertext1)
 		# update ciphertext
@@ -57,6 +70,7 @@ def aes_cbc_enc(aes_type,plaintext,key,IV): # return hex
 	# ciphertext_block_i = aes_ecb_enc(plaintext_block_i XOR ciphertext_block_i-1,key)
 	for i in range(bytes_size,len(plaintext),bytes_size):
 		block2=plaintext[i:(i+bytes_size)]
+		#block2=pkcs7_padding(plaintext[i:(i+bytes_size)])
 			# conversion
 		block2_hex=ascii_to_hex(block2)
 		block2_XOR=fixed_XOR(ciphertext1_hex,block2_hex).zfill(len(block2_hex))
@@ -90,3 +104,26 @@ def aes_cbc_dec(aes_type, ciphertext, key, IV):	# return ascii
 			# update previous block
 		block=block2
 	return hex_to_ascii(plaintext)
+
+		### CTR mode ###
+def aes_ctr_dec(ciphertext,key,nonce):
+	blocks = [ ciphertext[i : i + AES.block_size] for i in range(0, len(ciphertext), AES.block_size) ]
+	i = 0
+	plaintext = ""
+	for block in blocks:
+		counter = nonce * 8 + chr(i) + "\x00" * 7
+		counter_enc = aes_ecb_enc(counter,key)
+		plaintext += xor(block,counter_enc)
+		i+=1
+	return plaintext
+
+def aes_ctr_enc(plaintext,key,nonce):
+	blocks = [ plaintext[i : i + AES.block_size] for i in range(0, len(plaintext), AES.block_size) ]
+	i = 0
+	ciphertext = ""
+	for block in blocks:
+		counter = nonce * 8 + chr(i) + "\x00" * 7
+		counter_enc = aes_ecb_enc(counter, key)
+		ciphertext += xor(block, counter_enc)
+		i+=1
+	return ciphertext

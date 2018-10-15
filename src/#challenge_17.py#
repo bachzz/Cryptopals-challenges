@@ -1,0 +1,27 @@
+import sys
+sys.path.insert(0, './lib')
+from my_crypto_lib import *
+
+import os
+from random import randint
+
+def client(buffer):
+    buffer=buffer.split("\n")[:-1]
+    j = randint(0,len(buffer))
+    cookie=buffer[j]
+    cookie=pkcs7_padding(cookie)
+    cookie_enc=aes_cbc_enc(128,cookie,key,iv)
+    
+    return hex_to_ascii(cookie_enc)
+    #print cookie
+
+def server(ciphertext):
+    plaintext=
+    
+with open("./txt/17.txt") as f:
+    b64=f.read()
+
+key=os.urandom(16)
+iv=os.urandom(16)
+
+client(b64)

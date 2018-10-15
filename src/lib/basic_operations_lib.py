@@ -12,6 +12,8 @@ def ascii_to_hex(string):
 	return string.encode("hex")
 
 def hex_to_ascii(string):
+	if len(string) % 2 != 0:
+		string = string.zfill(len(string)+1)
 	return string.decode("hex")
 
 def base64_to_hex(b64):
@@ -52,6 +54,21 @@ def fixed_XOR(hex1,hex2): # len(hex1)=len(hex2)
 			bin3[i]='0'
 	bin3="".join(bin3)
 	return "%x" % int(bin3,2)
+
+# def xor(ascii1,ascii2): # return ascii
+# 	hex1=ascii_to_hex(ascii1)
+# 	hex2=ascii_to_hex(ascii2)
+# 	return hex_to_ascii(fixed_XOR(hex1,hex2).zfill(len(hex1)))
+
+def xor(a, b):
+    if len(a) > len(b):
+        return "".join([chr(ord(x) ^ ord(y)) for (x, y) in zip(a[:len(b)], b)])
+    else:
+        return "".join([chr(ord(x) ^ ord(y)) for (x, y) in zip(a, b[:len(a)])])
+
+def xor2(binary_data_1, binary_data_2):
+    """Returns the xor of the two binary arrays given."""
+    return bytes([b1 ^ b2 for b1, b2 in zip(binary_data_1, binary_data_2)])
 
 def single_byte_XOR(string,byte):	
 	string2=key_dup(byte,len(string)) 

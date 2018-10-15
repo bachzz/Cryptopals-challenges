@@ -26,8 +26,8 @@
 			# ... same steps with "="
 			# ...
 			# after changing 3 bytes in ciphertext, we get the EVIL ciphertext = "....z1...z2...z3...."!
-			# decrypt it and enjoy! "comment1=cooking%20MCs;userdata=/����?S�3����;admin=true;;comment2=%20like%20a%20pound%20of%20bacon"
-
+			# decrypt it and enjoy! 
+			
 import sys
 sys.path.insert(0, './lib')
 from my_crypto_lib import *
@@ -49,22 +49,13 @@ def make_admin():
 	ct=generate(input_str)
 	# change 1st "A" -> ";"
 	offset=32 # size of prefix
-	h1=ascii_to_hex(ct[offset])
-	h2=ascii_to_hex("A")
-	h3=ascii_to_hex(";")
-	c=hex_to_ascii(fixed_XOR(h1,fixed_XOR(h2,h3)))
+	c = xor(ct[offset], xor("A", ";"))
 	ct=ct[:offset]+c+ct[offset+1:]
 	# change 2nd "A" -> "="
-	h1=ascii_to_hex(ct[offset+6])
-	h2=ascii_to_hex("A")
-	h3=ascii_to_hex("=")
-	c=hex_to_ascii(fixed_XOR(h1,fixed_XOR(h2,h3)))
+	c = xor(ct[offset+6], xor("A", "="))
 	ct=ct[:offset+6]+c+ct[offset+7:]
 	# change 1st "A" -> ";"
-	h1=ascii_to_hex(ct[offset+11])
-	h2=ascii_to_hex("A")
-	h3=ascii_to_hex(";")
-	c=hex_to_ascii(fixed_XOR(h1,fixed_XOR(h2,h3)))
+	c = xor(ct[offset+11], xor("A", ";"))
 	ct=ct[:offset+11]+c+ct[offset+12:]
 	return ct
 	
