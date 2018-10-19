@@ -39,47 +39,46 @@ def unpad_pkcs7(string):
 	if string[-1]==pad_byte:
 		raise Exception("Bad PKCS#7 padding.")
 	return string
-	'''padding = buffer[-1]
-	if padding >= AES.block_size:                  
-		return buffer  
-	for i in range(len(buffer)-1, len(buffer)-padding, -1):
-		if buffer[i] != buffer[-1]:
-			raise Exception("Bad PKCS#7 padding.")
-	new_buffer = bytearray()
-	new_buffer[:] = buffer[:-padding]
-	return new_buffer'''
 
 def aes_cbc_enc(aes_type,plaintext,key,IV): # return hex
 	bytes_size=aes_type/8
 	# encrypt 1st block with IV  
-	# ciphertext_block_1 = aes_ecb_enc(plaintext_block_1 XOR IV,key) 
-	#block=plaintext[0:bytes_size]
 	block = pkcs7_padding(plaintext[0:bytes_size])
 		# conversion
-	# block_hex=ascii_to_hex(block)
-	# IV_hex=ascii_to_hex(IV)
-	# #print len(block_hex), len(IV_hex)
-	# block_XOR=fixed_XOR(IV_hex,block_hex).zfill(len(IV_hex))
-	# block_XOR_ascii=hex_to_ascii(block_XOR)
 	block_XOR_ascii = xor(block,IV)
 	ciphertext1=aes_ecb_enc(block_XOR_ascii,key)
 	ciphertext1_hex=ascii_to_hex(ciphertext1)
 		# update ciphertext
 	ciphertext=ciphertext1_hex
 	# encrypt next blocks with previous block 
-	# ciphertext_block_i = aes_ecb_enc(plaintext_block_i XOR ciphertext_block_i-1,key)
 	for i in range(bytes_size,len(plaintext),bytes_size):
 		block2=plaintext[i:(i+bytes_size)]
-		#block2=pkcs7_padding(plaintext[i:(i+bytes_size)])
 			# conversion
 		block2_hex=ascii_to_hex(block2)
 		block2_XOR=fixed_XOR(ciphertext1_hex,block2_hex).zfill(len(block2_hex))
-		block2_XOR_ascii=hex_to_ascii(block2_XOR)
+		block2_XOR_ascii = hex_to_ascii(block2_XOR)
 		ciphertext1=aes_ecb_enc(block2_XOR_ascii,key)
 		ciphertext1_hex=ascii_to_hex(ciphertext1)
 			# update ciphertext
 		ciphertext+=ciphertext1_hex
 	return ciphertext
+
+def aes_cbc_enc2(data, key, iv):
+    """Encrypts the given data with AES-CBC, using the given key and iv."""
+    ciphertext = b''
+    prev = iv
+
+    # Process the encryption block by block
+    for i in range(0, len(data), AES.block_size):
+
+        # Always PKCS 7 pad the current plaintext block before proceeding
+        curr_plaintext_block = pkcs7_padding(data[i:i + AES.block_size])
+        block_cipher_input = xor(curr_plaintext_block, prev)
+        encrypted_block = aes_ecb_enc(block_cipher_input, key)
+        ciphertext += encrypted_block
+        prev = encrypted_block
+
+    return ciphertext
 
 def aes_cbc_dec(aes_type, ciphertext, key, IV):	# return ascii
 	bytes_size=aes_type/8
@@ -93,7 +92,6 @@ def aes_cbc_dec(aes_type, ciphertext, key, IV):	# return ascii
 	plaintext=fixed_XOR(IV_hex,block_dec_hex).zfill(len(IV_hex))
 	
 	# decrypt next blocks with previous block 
-	# plaintext_block_i = ciphertext_block_i-1 XOR aes_ecb_dec(ciphertext_block_i,key))
 	for i in range(bytes_size,len(ciphertext),bytes_size):
 		block2=ciphertext[i:(i+bytes_size)]
 		block2_dec=aes_ecb_dec(block2,key)

@@ -8,7 +8,7 @@
 ## PKCS1.5:
 ##	00 || 02 || padding_string || 00 || data_block
 
-## HOW? (this challenge is basically full of math instructions so I just follow the steps
+## HOW? (this challenge is basically full of math instructions so I just follow the steps (more detailed write-up of math when I have time)
 ##		more details below or follow this link: 
 ##		http://archiv.infsec.ethz.ch/education/fs08/secsem/bleichenbacher98.pdf)
 	# Step 1: Blinding.

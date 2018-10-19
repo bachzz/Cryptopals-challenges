@@ -1,4 +1,4 @@
-### Better explanation for the challenge + solution
+### EXPLAIN!!!!
 
 ## GOAL: Change our email so that the ciphertext from "email=XX..XX&uid=10&role=user" => "email=XX..XX&uid=10&role=admin" (XX..XX is our email input)
 

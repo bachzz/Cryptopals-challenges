@@ -7,9 +7,12 @@
 ##			00 01 FF FF ... FF 00 ASN.1 HASH
 ## How to exploit?
 ##		- A faulty PKCS1.5 verifier might not check all "FF" bytes in middle exist
-## 		- We can generate "corrupted" PKCS1.5:
-## 			00 01 FF 00 ASN.1 HASH GARBAGE
-##		=> Correct signature will be the cube root of that 
+## 		- We can generate "corrupted" PKCS1.5 padding message:
+## 			forged_m = 00 01 FF 00 ASN.1 HASH_M GARBAGE
+##		=> Forged signature (forged_sig) will be the cube root of that (in power of 1/e with e=3)
+## Verifying process: 
+##		Oracle checks: - (forged_sig ^ e) mod n contains "00 01 FF 00" ? True (= forged_m ^ ((1/e) * e) mod n = forged_m)
+##					   - HASH_M == H(message) ? 
 
 import re
 import sys

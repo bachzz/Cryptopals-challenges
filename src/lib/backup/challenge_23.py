@@ -1,6 +1,57 @@
 # QUESTION! What if we don't have all 624 outputs? can we still predict next output with clone?
 
+# import sys
+# import time
 
+# sys.path.insert(0, './lib')
+# from my_crypto_lib import *
+
+# def untemper_right(value, shift):
+#     result = 0
+#     for i in range(32 / shift + 1):
+#         result ^= value >> (shift * i)
+#     return result
+
+# def untemper_left(value, shift, const):
+#     result = 0
+#     for i in range(0, 32 / shift + 1):
+#         part_mask = (0xffffffff >> (32 - shift)) << (shift * i)
+#         part = value & part_mask
+#         value ^= (part << shift) & const
+#         result |= part
+#     return result
+
+# def untemper(y):
+#     y = untemper_right(y, 18)
+#     y = untemper_left(y, 15, 4022730752)
+#     y = untemper_left(y, 7, 2636928640)
+#     y = untemper_right(y, 11)
+#     return y
+
+
+# def clone_MT19937RNG(outputs):
+#     #print len(outputs)
+#     #assert(len(outputs) >= 624)
+#     clone = MT19937RNG(0)
+#     for i in range(len(outputs)):
+#         clone.MT[i] = untemper(outputs[i]) 
+#     #clone.MT = [untemper(output) for output in outputs]
+#     clone.index = len(outputs)
+#     return clone
+
+# rand = MT19937RNG(23)
+# outputs = [rand.extract_number() for i in range(11)]
+# print outputs
+# cloned = clone_MT19937RNG(outputs)
+# #clones = [cloned.extract_number() for i in range(11)]
+# #print clones
+# print cloned.extract_number(), rand.extract_number()
+# #for i in range(10):
+#     #print i
+#     #if cloned.extract_number() == rand.extract_number():
+#     #    print i
+
+#from S3C21 import MT19937
 import sys
 import time
 

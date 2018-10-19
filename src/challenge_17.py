@@ -1,136 +1,129 @@
+### EXPLAIN! EXPLAIN! EXPLAIN!
+
+## WHAT WE HAVE?
+    # A ciphertext
+    # A paddding oracle (a service that receives ciphertext -> decrypts it -> check valid PKCS7 padding -> return True | False)
+
+## GOAL?
+    # Decrypt ciphertext by calling padding oracle repeatedly (brute-force)
+
+## How?
+    # Suppose we have 2 ciphertext blocks: C = C1 || C2, and plaintext of C2 is P2
+    # Let the last byte in ciphertext block 1 be C1_15, last one in decrypted block 2 be D1_15, last one in plaintext block 2 be P2_15
+    # Goal: guess P2_15 correctly
+    # How?
+        # Change C1_15 = C1_15 XOR guess XOR '0x01' -> We have new C' 
+        # Brute-force guess ( 0 <= guess <= 256), for each guess, padding_oracle(C') to get 
+        #   P2_15' = C1_15' XOR D1_15 = C1_15 XOR guess XOR '0x01' XOR D1_15 = P2_15 XOR guess XOR '0x01'
+        # If guess == P2_15 => Save guess
+    # Repeat with second to last byte, third to last byte, ... with padding byte "0x02","0x03",...
+    # => Decrypted block C2
+    # Repeat the same process to decrypt block C3 by modifying ciphertext block C2, C4 by C3, C5 by C4, ...
+    # NOTE: Decrypt block C1 why modifying ciphertext IV
+
+
 import sys
 sys.path.insert(0, './lib')
 from my_crypto_lib import *
 
-import os
-from random import randint
+from helpers import *
+import random
+from base64 import b64decode
 
-def client(buffer):
-    buffer=buffer.split("\n")[:-1]
-    #j = randint(0,len(buffer)-1)
-    j=0
-    cookie=buffer[j]
-    cookie=base64_to_ascii(cookie)
-    cookie=pkcs7_padding(cookie)
-    cookie_enc=aes_cbc_enc(128,cookie,key,iv)
-    return hex_to_ascii(cookie_enc)
-    #print cookie
+stringpool = [
+ 'MDAwMDAwTm93IHRoYXQgdGhlIHBhcnR5IGlzIGp1bXBpbmc=',
+ 'MDAwMDAxV2l0aCB0aGUgYmFzcyBraWNrZWQgaW4gYW5kIHRoZSBWZWdhJ3MgYXJlIHB1bXBpbic=',
+ 'MDAwMDAyUXVpY2sgdG8gdGhlIHBvaW50LCB0byB0aGUgcG9pbnQsIG5vIGZha2luZw==',
+ 'MDAwMDAzQ29va2luZyBNQydzIGxpa2UgYSBwb3VuZCBvZiBiYWNvbg==',
+ 'MDAwMDA0QnVybmluZyAnZW0sIGlmIHlvdSBhaW4ndCBxdWljayBhbmQgbmltYmxl',
+ 'MDAwMDA1SSBnbyBjcmF6eSB3aGVuIEkgaGVhciBhIGN5bWJhbA==',
+ 'MDAwMDA2QW5kIGEgaGlnaCBoYXQgd2l0aCBhIHNvdXBlZCB1cCB0ZW1wbw==',
+ 'MDAwMDA3SSdtIG9uIGEgcm9sbCwgaXQncyB0aW1lIHRvIGdvIHNvbG8=',
+ 'MDAwMDA4b2xsaW4nIGluIG15IGZpdmUgcG9pbnQgb2g=',
+]
 
-def padding_oracle(ciphertext,prev_iv):
-    print ascii_to_hex(prev_iv),ascii_to_hex(ciphertext)
-    plaintext=aes_cbc_dec(128,ciphertext,key,prev_iv)
+key = generateRandomData()
+
+
+def encrypt(plaintext):
+    iv = generateRandomData()
+    plaintext = pkcs7Padding(plaintext)
+    print ' Original:', bytesToText(removePkcs7Padding(plaintext))
+    cipher = encryptCBC(plaintext, key, iv)
+    return iv + cipher
+
+
+def paddingOracle(cipherAndIV):
+    cipher = cipherAndIV[16:]
+    iv = cipherAndIV[:16]
+    plaintext = decryptCBC(cipher, key, iv)
+    #plaintext=aes_cbc_dec(128,cipher,key,iv)
+    #print "".join(plaintext)
     try:
-        unpad_pkcs7(plaintext)
-        return True
-    except:
+        return checkPkcs7Padding(plaintext)
+    except ValueError:
         return False
 
-'''def xor(b1, b2):
-    b = bytearray(len(b1))
-    for i in range(len(b1)):
-        b[i] = b1[i] ^ b2[i]
-    return b'''
 
-def xor(ascii1,ascii2): # return ascii
-	hex1=ascii_to_hex(ascii1)
-	hex2=ascii_to_hex(ascii2)
-	return hex_to_ascii(fixed_XOR(hex1,hex2).zfill(len(hex1)))
+def recoverPlaintext(cipherAndIV):
+    recovered = []
+    recoveredBlock = []
 
-def crack(ciphertext):
-	pt="A"*len(ciphertext)
-	#prev_iv=iv
-	for block in range(0, len(ciphertext), AES.block_size):
-		for i in range(block+AES.block_size-1, block-1,-1):
-			#print block,i
-			for j in range(0,255):
-				guess=chr(j)
-				#ciphertext[block+i]=xor(ciphertext[block+i],xor(guess,chr(AES.block_size-i)))
-				ciphertext=ciphertext[:i]+xor( xor(ciphertext[i], guess), chr(block+AES.block_size-i) )+ciphertext[i+1:]
-				#print len(ciphertext[block:block+AES.block_size])
-				prev_iv=ciphertext[block:block+AES.block_size]
-				if padding_oracle(ciphertext[block+AES.block_size:block+2*AES.block_size],prev_iv): # !!!!
-					#pt[block+i]=guess
-					print j,ascii_to_hex(chr(block+AES.block_size-i))
-					pt=pt[:i+AES.block_size]+guess+pt[AES.block_size+i+1:]
-					break
-			for k in range(block+AES.block_size-1,i-1,-1):
-				d_k=xor(pt[k],ciphertext[k])
-				#ciphertext[block+k]=xor(d_k,chr(AES.block_size-i+1))
-				ciphertext=ciphertext[:k]+xor(d_k,chr(block+AES.block_size-i+1))+ciphertext[k+1:]
-	print pt
-	
-'''def crack_block(block, iv):
-    plaintext_block = bytearray()
-    start_guess = 0
-    while len(plaintext_block) < AES.block_size:
-        for guess in range(start_guess, 256):
-            padding = len(plaintext_block) + 1
-            # Copy the IV so we don't corrupt it for future guesses
-            corrupted_iv = iv
-            for byte in range(1, padding + 1):
-                # Use the "correct" guesses of plaintext block bytes
-                if byte < padding:
-                    corrupted_iv[-byte] =  bytes(xor(
-                        xor(
-                            [iv[-byte]],
-                            chr(plaintext_block[-byte])
-                        ),
-                        chr(padding)
-                    ))
-                # Guess the correct byte
-                else:
-                    corrupted_iv[-byte] =  bytes(xor(
-                        xor([iv[-byte]], chr(guess)),
-                        chr(padding)
-                    ))
-            if padding_oracle(block, corrupted_iv):
-                # If the padding oracle doesn't complain... we've guessed the
-                # correct byte!
-                plaintext_block = chr(guess) + plaintext_block
-                start_guess = 0
-                break
-        else:
-            # If we cannot find a correct padding, the guess for the previous
-            # byte was incorrect... so try another one!
-            try:
-                start_guess = int(plaintext_block[0]) + 1
-                plaintext_block = plaintext_block[1:]
-            except:
-                # This occurs if the last ciphertext block is just a padding
-                # block... I don't know why my encryption is sometimes adding
-                # an extra block
-                return bytearray()
-    return plaintext_block
+    # split cipherAndIV into 16-byte blocks
+    cipherblocks = [chunk for chunk in chunks(cipherAndIV)]
 
-def crack(ciphertext, iv):
-    ciphertext = iv + ciphertext
-    plaintext = ''
-    for i in range(len(ciphertext) / AES.block_size):
-        # We only really need to pass two blocks to the padding oracle...
-        # The block to the decrypt, and the one before it which we corrupt
-        plaintext += crack_block(
-            ciphertext[(i + 1) * AES.block_size: (i + 2) * AES.block_size],
-            ciphertext[i * AES.block_size: (i + 1) * AES.block_size]
-        )
-    return unpad_pkcs7(plaintext)'''
-				
-with open("./txt/17.txt") as f:
-    b64=f.read()
+    for offset in xrange(len(cipherblocks) - 1):
+        # the original ciphertext is needed for the xor'ing
+        xorCipherblock = cipherblocks[offset]
+
+        # the leading 0 will be used to find valid padding, the cipherblock
+        # is the part that will be recovered
+        workingBlock = [0] * 16 + cipherblocks[offset + 1]
+
+        # pos is the position of the byte we are trying to find
+        # using negative index into the byte lists
+        for pos in [x for x in reversed(range(-16, 0))]:  # [-1, -2, ..., -16]
+            # how many bytes do we have? Need this to construct valid padding
+            recoveredBytesCount = len(recoveredBlock)
 
 
-#print test[4]
-#print test[:4]+test[4]+test[5:]
+            if recoveredBytesCount > 0:
+                # make sure the ciphertext has valid padding
+                for i in xrange(recoveredBytesCount):
+                    # if we have e.g. two bytes recovered, we want the padding
+                    # to be 0x03, we need to modify the ciphertext accordingly
 
-key=os.urandom(16)
-iv=os.urandom(16)
+                    # paddingValue ^ origC ^ recoveredP
+                    workingBlock[-17 - i] = \
+                        (recoveredBytesCount + 1) ^ \
+                        xorCipherblock[-1 - i] ^ recoveredBlock[i]
 
-ct=client(b64)
-print ascii_to_hex(ct)
-#print server(ct)
-#print ct
-crack(ct)
-#plaintext=crack(ct,iv)
-#print plaintext
-#test="123456789012345\x03"
-#print padding_oracle(test)
+            # now start guessing bytes
+            for byte in xrange(256):
+                workingBlock[pos - 16] = byte  # set the byte
+                result = paddingOracle(workingBlock[:])  # check the oracle
+                if result:  # if the padding is valid...
+                    # calculate the actual plaintext
+                    # paddingValue ^ guessed byte ^ original ciphertext byte
+                    recoveredBlock.append((recoveredBytesCount + 1) ^ byte ^
+                                          xorCipherblock[pos])
+                    break
+        # the recovered block bytes are reversed b/c we started w/ the last one
+        recovered.extend([b for b in reversed(recoveredBlock)])
+        recoveredBlock = []
+    return recovered
 
+
+def main():
+    # choose random plain text
+    plain = b64decode(random.choice(stringpool))
+    # encrypt the plaintext, prepend the IV
+    cipherAndIV = encrypt(textToByteList(plain))
+
+    # run the intercepted ciphertext against the padding oracle
+    plain = recoverPlaintext(cipherAndIV)
+    print 'Recovered:', bytesToText(removePkcs7Padding(plain))
+
+
+if __name__ == '__main__':
+    main()
