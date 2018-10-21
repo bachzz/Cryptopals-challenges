@@ -1,14 +1,14 @@
 # CRYPTOPALS WRITE-UP #
 #
-## SET 1
-###1.1. Convert hex to base64 ###
+## SET 1 ##
+### 1.1. Convert hex to base64 ###
 - Step 1: Convert *hex* to *ascii* using `decode('hex')`
 - Step 2: Convert *ascii* to  *base64* using `b64decode`
-###1.2. Fixed XOR###
+### 1.2. Fixed XOR ###
 - 2 methods:
 	+ 1st method: Loop through each bit and assign 1 if corresponding bit is different, 0 otherwise
 	+ 2nd method: Loop through each bit, and use `^` operator (xor)
-###1.3. Single-byte XOR cipher (Substitution cipher) ###
+### 1.3. Single-byte XOR cipher (Substitution cipher) ###
 - **Description:** `ciphertext = key XOR plaintext`. `key` contains a *single-byte* and its duplication until the `key` has the same length as `plaintext`. e.g: 
 
 ![](./pics/single_byte_xor.png)
@@ -16,14 +16,14 @@
 - **How to break:** What do we have? `ciphertext`. How to get `plaintext`? `plaintext = ciphertext XOR key` => So we need `key` => Bruteforce *single-byte* `key` (maybe from `0-9`,`A-Z`,`a-z`). With every `key`, after doing `XOR` operation to get `plaintext`, calculate how "english" the `plaintext` is, based on `letters-frequency` table. The `key` with highest score would be the true key!
 
 ![](./pics/letter_frequency.png) 
-###1.4. Detect single-character XOR###
+### 1.4. Detect single-character XOR ###
 - This challenge asks us to find which of the 60-character strings in the file has been encrypted by single-character XOR.
 - Use `break_single_byte_xor` in challenge 3, iterate through all the strings, to find the possible single-character xor key and word score of each line
 - Result: `Now that the party is jumping\n`
-###1.5. Implement repeating-key XOR###
+### 1.5. Implement repeating-key XOR ###
 - Step 1: Duplicate key "ICE" to the same length as message
 - Step 2: XOR them to get ciphertext!
-###1.6. Repeating-key XOR cipher (Vigener's cipher) ###
+### 1.6. Repeating-key XOR cipher (Vigener's cipher) ###
 - **Description:** `ciphertext = key XOR plaintext`. `key` contains *multiple-bytes* and its duplication until the `key` has the same length as `plaintext`. e.g: 
 
 ![](./pics/vigener.png) 
@@ -39,29 +39,29 @@
 		- Duplicate `key` to get key string with length of `ciphertext`
 		- `plaintext = ciphertext XOR key_string`
 		- Enjoy! :)
-###1.7. AES in ECB mode###
+### 1.7. AES in ECB mode ###
 - Use `Crypto` module in python to implement ECB mode: `from Crypto.Cipher import AES`
 ![](./pics/ecb.png)
-###1.8. Detect AES in ECB mode###
+### 1.8. Detect AES in ECB mode ###
 - **ECB**'s problem: *the same block of plaintext will encrypt to the same ciphertext*
 - So loop through each line of ciphertext, check which one has duplicated block of ciphertext, it will be the one encrypted using ECB mode
 
-## SET 2##
-###2.9. Implement PKCS#7 padding###
+## SET 2 ##
+### 2.9. Implement PKCS#7 padding ###
 - E.g: For a block of 8 bytes
 ![](./pics/pkcs7_padding.png)
 - For a block size of X bytes, the missing bytes will be padded with the total number of missing bytes
-###2.10. Implement CBC mode###
+### 2.10. Implement CBC mode ###
 - In CBC mode, each block of plaintext is XORed with the previous ciphertext block before being encrypted. We need an IV for the first block of plaintext.
 ![](./pics/cbc_enc.png)
 ![](./pics/cbc_dec.png)
 - The `encrypt()` function will split the plaintext into blocks (usually size 16), and then do the encryption
 - The `decrypt()` function will split each block of ciphertext, decrypts it, and XORs with the previous block of ciphertext to recover the plaintext
-###2.11. An ECB/CBC detection oracle###
+### 2.11. An ECB/CBC detection oracle ###
 - This challenge asks us to detect whether we’ve encrypted a text with ECB or CBC, chosen at random.
 - Recall the properties of ECB vs CBC — ECB will take two identical plaintext blocks and produce two identical ciphertext blocks.
 - So just detect ECB using the function in challenge 8. If it's ECB, return ECB. If not, return CBC
-###2.12. Byte-at-a-time ECB decryption (Simple)###
+### 2.12. Byte-at-a-time ECB decryption (Simple) ###
 - **WHAT WE HAVE?** an oracle that produces `AES-128-ECB(your-string || unknown-string, random-key)`
 - **GOAL:** find unknown-string with this oracle. 
 - **STEPS:**
@@ -70,7 +70,7 @@
 		+ The size of the increase will be block_size, because of the padding.
 	+ Step 2: find the flag byte-by-byte
 		+ How? Since I control my-string, I can ensure each time that the oracle encrypts 15 bytes that I know + one unknown byte. I can then create a table of all possible ciphertexts of the 15 known bytes + 1 unknown byte, and compare the ciphertext the oracle returns to the ciphertexts in my table.
-###2.13. ECB cut-and-paste###
+### 2.13. ECB cut-and-paste ###
 - **WHAT WE HAVE?** "login" page (profile_for(email) function) with input for email + ciphertext (or cookie) for user profile AFTER inputting email + decrypting function (with unknown key - set key as global) to see user profile
 - **GOAL**: Change our email so that the ciphertext from "email=XX..XX&uid=10&role=user" => "email=XX..XX&uid=10&role=admin" (XX..XX is our email input)
 - **WHAT WE KNOW?**
@@ -89,7 +89,7 @@
 			+ STEP 2.3: Get ciphertext of profile_for(email) (only get 2nd block of 16 bytes)
 		+ STEP 3: EVIL ciphertext = ciphertext1 || ciphertext2
 	+ Thanks to ECB's vulnerability (same plaintext '+' same key = same ciphertext), if we have ciphertext of "email=XX..XX&uid=10&role=admin", we ALWAYS have plaintext as "email=XX..XX&uid=10&role=admin" under the same key in session
-###2.14. Byte-at-a-time ECB decryption (Harder)###
+### 2.14. Byte-at-a-time ECB decryption (Harder) ###
 - **GOAL:** Decrypt unknown string byte-by-byte
 - **WHAT WE HAVE?**
 	 `Ciphertext  AES_128_ECB(random_prefix || user's input || unknown_string)`
@@ -105,9 +105,9 @@
 		+ 5.Note: To get the true size of the random_prefix, you must subtract the number of prepended padding bytes
 		+ 6.If you have prepended block_size - 1 bytes to the input and you still cannot find N consecutive identical blocks, the ciphertext wasn't encrypted in ECB mode and we're out of luck.
 
-###2.15. PKCS7 padding validation###
+### 2.15. PKCS7 padding validation ###
 ![](./pics/unpad_pkcs7.png)
-###2.16. CBC bitflipping attacks###
+### 2.16. CBC bitflipping attacks ###
 - **WHAT WE HAVE?**
 	 + `ciphertext = generate( 
 			AES_128_CBC_ENC("comment1=cooking%20MCs;userdata=" || payload || ";comment2=%20like%20a%20pound%20of%20bacon")
@@ -137,7 +137,7 @@
 			 decrypt it and enjoy!
 
 ## SET 3 ##
-###3.17. The CBC padding oracle###
+### 3.17. The CBC padding oracle ###
 - **WHAT WE HAVE?**
 	+ A ciphertext
     + A paddding oracle (a service that receives ciphertext -> decrypts it -> check valid PKCS7 padding -> return True | False)
@@ -158,7 +158,7 @@
      => Decrypted block C2
      + Repeat the same process to decrypt block C3 by modifying ciphertext block C2, C4 by C3, C5 by C4, ...
      + **NOTE:** Decrypt block C1 why modifying ciphertext IV
-###3.18. Implement CTR, the stream cipher mode###
+### 3.18. Implement CTR, the stream cipher mode ###
 - CTR encryption:
 ![](./pics/ctr_enc.png)
 - CTR decryption:
@@ -167,7 +167,7 @@
 	+ key= YELLOW SUBMARINE
     + nonce = 0
     + format = 64 bit unsigned little endian nonce, 64 bit little endian block count (byte count / 16)
-###3.19. Break fixed-nonce CTR mode using substitutions###
+### 3.19. Break fixed-nonce CTR mode using substitutions ###
 - **THEORY:**
 	 Because the CTR nonce wasn't randomized for each encryption, each ciphertext has been encrypted against the same keystream.
 
@@ -185,7 +185,7 @@
 	 The keystream byte X with the highest score would be the CORRECT keystream byte.
 	 + Repeat same process with next bytes
 	 + Finally, we get the full keystream -> XOR it with each ciphertext to get plaintext
-###3.20. Break fixed-nonce CTR statistically###
+### 3.20. Break fixed-nonce CTR statistically ###
 - **WHAT TO DO?**
 	Same as 19
 - **HOW TO DECRYPT:**
@@ -193,12 +193,12 @@
 	+ Since each ciphertext is encrypted using the same key -> the whole string is encrypted with repeated-key-xor
 	+ Use break-repeating-key-xor function in challenge 6 to get the keystream
 	+ XOR that keystream with each ciphertext to get plaintext
-###3.21. Implement the MT19937 Mersenne Twister RNG###
+### 3.21. Implement the MT19937 Mersenne Twister RNG ###
 - Implement psuedocode from wiki: https://en.wikipedia.org/wiki/Mersenne_Twister
-###3.22. Crack an MT19937 seed###
+### 3.22. Crack an MT19937 seed ###
 - Just brute-force the seed (timestamp) backward in time (seed_trial -= 1) until it has the same PRNG with the original seed
 ![](./pics/crack_MT19937.png)
-###3.23. Clone an MT19937 RNG from its output###
+### 3.23. Clone an MT19937 RNG from its output ###
 - To clone an MT19937 RNG, we need to find its 624-value internal state by reverse-engineering MT19937
 - **STEPS:**
 	+ get 624 RNG outputs
@@ -207,7 +207,7 @@
 	+ Create a new generator and set it to have the same state
 	![](./pics/clone_MT19973.png)
 - **QUESTION!** What if we don't have all 624 outputs? can we still predict next output with clone?
-###3.24. Create the MT19937 stream cipher and break it###
+### 3.24. Create the MT19937 stream cipher and break it ###
 - **What we have?**
 	+ Task 1: 
 		+ create a MT19937Cipher with a given key as seed to encrypt / decrypt a plaintext / ciphertext 
@@ -222,13 +222,13 @@
 	+ Task 2:
 		+ same as 22
 
-## SET 4##
-###4.25. Break "random access read/write" AES CTR###
+## SET 4 ##
+### 4.25. Break "random access read/write" AES CTR ###
 - **GOAL:** Recover the original plaintext after encrypt it under CTR and edit ciphertext by `edit(ciphertext, key, offset, newtext)`. 
 - **HOW?**
 	+ Because we can seek into the ciphertext and edit arbitrary characters, we we can simply guess each plaintext character.
 	+ For each byte in the ciphertext, I can try all 256 characters by replacing the ciphertext byte with my encrypted guess using the provided edit() function. If the new ciphertext exactly matches the original ciphertext, then I know my guess for the plaintext character is correct, since it encrypted to the same byte.
-###4.26. CTR bitflipping###
+### 4.26. CTR bitflipping ###
 - **WHAT WE HAVE?**
 	+ An oracle - a service that encrypt a text = prefix || our input || postfix using AES in CTR mode, then return ciphertext
 	+ That oracle will clean ";", "=" from our input
@@ -247,7 +247,7 @@
 		+ C1 XOR  (3) =>	C2 = C1 XOR "?admin?true" XOR ";admin=true"
 		+ EVIL ciphertext = ciphertext(prefix) + C2 + ciphertext(postfix)
 		+ => Now decrypt EVIL ciphertext to get ADMIN privilege!!
-###4.27. Recover the key from CBC with IV=Key###
+### 4.27. Recover the key from CBC with IV=Key ###
 - **WHAT WE HAVE?**
 	+ An insecure oracle provides
 		+ a service that encrypts prefix || messages || postfix in CBC mode with IV = key
@@ -260,9 +260,9 @@
 		+ oracle decrypts plaintext: `PT = iv XOR dec(C1) || ........ || "\x00 * block_size" XOR dec(C1)`
 		+ oracle returns corrupted PT from exception to attacker
 		+ Attacker computes: `P1 XOR P3 = iv XOR "\x00 * block_size" = iv = key`
-###4.28. Implement a SHA-1 keyed MAC###
+### 4.28. Implement a SHA-1 keyed MAC ###
 - Implement from psuedocode in wikipedia: https://en.wikipedia.org/wiki/SHA-1
-###4.29. Break a SHA-1 keyed MAC using length extension###
+### 4.29. Break a SHA-1 keyed MAC using length extension ###
 - **WHAT WE HAVE?**
     + An oracle - a service using SHA1-MAC to:
         + Generate a SHA1 MAC digest for a message using a secret key
@@ -278,9 +278,9 @@
         + Get SHA1 hash of the extra payload, by setting the state of the SHA1 function to the cloned one that we deduced from the original digest.
         + If the forged digest is valid, return it together with the forged message.
         + Else, keep brute-forcing
-###4.30. Break an MD4 keyed MAC using length extension###
+### 4.30. Break an MD4 keyed MAC using length extension ###
 - Same as 29 with MD4 implementation
-###4.31. Implement and break HMAC-SHA1 with an artificial timing leak###
+### 4.31. Implement and break HMAC-SHA1 with an artificial timing leak ###
 - **WHAT WE HAVE?**
 	+ A server: 
 		+ handles request: "http://localhost:8888/test?file=XXX&signature=XXX" || client inputs XXX
@@ -297,30 +297,30 @@
 - **NOTE:**
     + Run challenge\_31\_server.py before attack
     + Then run challenge\_31\_client.py
-###4.32. Break HMAC-SHA1 with a slightly less artificial timing leak###
+### 4.32. Break HMAC-SHA1 with a slightly less artificial timing leak ###
 - Same as 31 but add normalization method for more accuracy
 - **NOTE:** Run challenge\_31\_server.py before attack
 
-## SET 5##
-###5.33. Implement Diffie-Hellman###
+## SET 5 ##
+### 5.33. Implement Diffie-Hellman ###
 - **Diffie-Helman (basic key exchange):**
 - Alice & Bob wants to exchange secret key in an open channel
 - => Alice sends A to Bob, Bob sends B to A
 - Alice has secret a, Bob has secret b such that, A = (g ^ a) mod p, B = (g ^ b) mod p (g, p are constants)
 - => Secret key of Alice & Bob is kAB = A^b = B^a = (g ^ ab) mod p
-###5.34. Implement a MITM key-fixing attack on Diffie-Hellman with parameter injection###
+### 5.34. Implement a MITM key-fixing attack on Diffie-Hellman with parameter injection ###
 ![](./pics/dh_mitm.png)
 
 - kAB = (p^a) mod p = (p^b) mod p = 0
 - -> Secret key of Alice & Bob becomes 0!
 - -> Hacker uses the key to decrypt messages
-###5.35. Implement DH with negotiated groups, and break with malicious "g" parameters###
+### 5.35. Implement DH with negotiated groups, and break with malicious "g" parameters ###
 - Same as challenge_34
 - **NOTE:** 
 	+ When g = 1, all powers of g are 1 as well => secret key is always 1
 	+ When g = p, as in challenge 34, powers are all divisible by p => secret key is always 0
 	+ When g = p-1 is raised to a power, then mod p will be either 1 or -1
-###5.36. Implement Secure Remote Password (SRP)###
+### 5.36. Implement Secure Remote Password (SRP) ###
 - Secure Remote Password (SRP)
 - A form of authentication in which the client does not need to reveal password
 - Server: 
@@ -330,7 +330,7 @@
 - Client: 
 	+ After exchaing some parameters with server, generate a session key K with password
 	+ => The server checks client's K == server's K => If true, successfully authenticates the client
-###5.37. Break SRP with a zero key###
+### 5.37. Break SRP with a zero key ###
 - **NOTE!!!** RUN challenge\_36\_server first
 - Break SRP with a zero key:
 	+ Server produces K by: 
@@ -338,7 +338,7 @@
 		+ `K_server = H(S)`
 	+ => A = 0 or A = N or A = N^2 => S = 0 
 	+ => we can authenticate simply by sending K_client = H(0) without knowing the password!
-###5.38. Offline dictionary attack on simplified SRP###
+### 5.38. Offline dictionary attack on simplified SRP ###
 - **NOTE!!!!** 
 	+ Use `Python 3` for challenge\_38\_server.py and challenge\_38\_client.py
 	+ Due to issues of sha256 in `python 2` (e.g: "utf-8" encoding issue: UnicodeDecodeError: 'ascii' codec can't decode byte...)
@@ -346,7 +346,7 @@
 - **Explain:**
 	+ Same as challenges 36,37 but now Server "leaks" some parameters like b, B, u, salt
 	+ From those params, MITM hacker can compute session key K and brute-force K until get common dictionary word for password
-###5.39. Implement RSA###
+### 5.39. Implement RSA ###
 - **RSA**
 	+ Basic of RSA is about to find 3 prime numbers e, d, n (n - very large prime) such that for all m (0 < m <n)
 	+		(m ^ e) ^ d = m (mod n)
@@ -365,7 +365,7 @@
 		+ ciphertext\_int = message\_int ^ e (mod n)  
 	+ Decryption
 		+ message\_int = ciphertext\_int ^ d (mod n)
-###5.40. Implement an E=3 RSA Broadcast attack###
+### 5.40. Implement an E=3 RSA Broadcast attack ###
 - Attack RSA based on CRT (Chinese Remainder Theorem):
 	+ Let p, q be coprime. Then the system of equations:
 		+ x = a (mod p)
@@ -379,8 +379,8 @@
 	+ => We need to find M (unique)
 	+ => Follow the steps in the challenge to find M
 
-## SET 6##
-###6.41. Implement unpadded message recovery oracle###
+## SET 6 ##
+### 6.41. Implement unpadded message recovery oracle ###
 - The Oracle (server) provides service to encrypt user's message and decrypt ciphertexts (NOT in database)
 - The attacker can ask for the encryption and decryption of anything he/she wants - except user's ciphertexts which are in database
 - => **GOAL:** Attacker recover user's message from its ciphertext using decryption service of server
@@ -388,7 +388,7 @@
 	+ In Unpadded RSA,  if operations like multiplication and addition are carried out on ciphertext, it is as if the same operation were applied to the plaintext
 	+ => The attacker can't ask for the decryption of user's ciphertext, but attacker can ask for the decryption of ciphertext\_2 and attacker knows that the result will be plaintext\_2. 
 	+ => Just divide out the scaling factor, and attacker has the plaintext.
-###6.42. Bleichenbacher's e=3 RSA Attack###
+### 6.42. Bleichenbacher's e=3 RSA Attack ###
 - When signing a message using RSA:
  	+ User generates signature using (n, d): sig = m ^ d mod n
 	+ Server verifies signature using (n, e): (sig ^ e mod n) == m
@@ -403,7 +403,7 @@
 	+	Oracle checks: 
 		+ `(forged_sig ^ e) mod n` contains "00 01 FF 00" ? True because `= forged_m ^ ((1/e) * e) mod n = forged_m`
 		+ `HASH_M == H(message)` ? 
-###6.43. DSA key recovery from nonce###
+### 6.43. DSA key recovery from nonce ###
 - **NOTE:** USE `PYTHON3` !! `python2` doesn't give correct result, I'll look into it when I have time.
 - DSA (Digital Signature Algorithm) involves 3 main parts:
 	+ Key generation:
@@ -432,7 +432,7 @@
 			`x = (s * k) - H(message) * inv_mod(r,q) mod q`
 	- Attacker brute-forces k until `get_public_key_from_private_key(x) == y`
 	- if True, return x - the private key
-###6.44. DSA nonce recovery from repeated nonce###
+### 6.44. DSA nonce recovery from repeated nonce ###
 - **NOTE:** USE `PYTHON3` for this challenge!! `python2 `doesn't give correct result, I'll look into it when I have time.
 - When messages are signed using DSA with repeated nonce (r, k), given a pair of messages, attacker can find k using the formula:
 - ![](./pics/6_44.png)
@@ -444,10 +444,10 @@
 		- if r1 == r2:
 		- => `k = (m1 - m2) / (s1 - s2) mod q`	
 	- We have k => We have x! (same as challenge 43)
-###6.45. DSA parameter tampering###
+### 6.45. DSA parameter tampering ###
 - If g = p + 1 or g = 0 => r = (g ^ k) mod p = 1 for ALL k
  => same signature can be verified for different messages
-###6.46. RSA parity oracle###
+### 6.46. RSA parity oracle ###
 - plaintext P is within the bounds [0, N] - LB(lower bound) = 0, UB(uppder bound) = N
  iterate this algorithm log2(N) times to find P from original ciphertext C
 	-	`C' = ((2^e mod N) * C) mod N`
@@ -456,7 +456,7 @@
 	-   else:
 		+	`UB = (LB + UB) / 2`
 - => The final upper bound is the plaintext we need to find
-###6.47. Bleichenbacher's PKCS 1.5 Padding Oracle (Simple Case)###
+### 6.47. Bleichenbacher's PKCS 1.5 Padding Oracle (Simple Case) ###
 - **Oracle (server):** 
 	- Implement RSA to encrypt, decrypt messages
 	- Check PKCS1.5 valid padding of ciphertext
@@ -473,13 +473,13 @@
 		- 2.b: Searching with more than one interval left
 		- 2.c: Searching with one interval left
 	- Step 3: Narrowing the set of solutions
-###6.48. Bleichenbacher's PKCS 1.5 Padding Oracle (Complete Case)###
+### 6.48. Bleichenbacher's PKCS 1.5 Padding Oracle (Complete Case) ###
 - SAME AS 47 
 - Difference: Key bit length = 768
  => takes a bit more time to run
 
 ## SET 7 ##
-###7.49. CBC-MAC Message Forgery###
+### 7.49. CBC-MAC Message Forgery ###
 - Server: verify request with valid MAC to continue transaction (shared key with user)
 - Part 1: Client can send IV as a parameter in request  (Default IV: good_iv = "\x00" * 16 in CBC_MAC)
 	- Hacker controls 1's account to get valid MAC for request: `normal_msg = "_from=1&to=0&amount=10000"`
@@ -494,11 +494,11 @@
 	- The attacker first generates a MAC for a valid message that names him as a recipient.
 	-	He then intercepts a normal message like `"from=2&tx_list=3:5000;4:7000"` (hacker doesn't control 2,3,4),  
 	-	and xors in his own message at the end, causing the resultant MAC to become his own MAC.
-###7.50. Hashing with CBC-MAC###
+### 7.50. Hashing with CBC-MAC ###
 - `Forged msg = evil_msg + (cbc_mac(evil_msg) XOR normal_msg[:16]) + normal_msg[16:]`
 - CBC-MAC encrypting 1st block: `evil_msg + cbc_mac(normal_msg[:16]) XOR normal_msg[:16] + normal_msg[16:]`
 - CBC-MAC encrypting n-th block: `Forged_mac = normal_mac`
-###7.51. Compression Ratio Side-Channel Attacks###
+### 7.51. Compression Ratio Side-Channel Attacks ###
 - **The server** has services:
 	- Format request (along with default, hidden session id)
 	- Compress formatted request using "zlib"
@@ -512,7 +512,7 @@
 		+ In CTR mode, just like that.
 		+ In CBC mode, using the same fact to brute-force padding bytes with these characters `'!@#$%^&*()-`~[]{}'`, and at the same time also brute-force session id
 
-###7.52. Iterated Hash Function Multicollisions###
+### 7.52. Iterated Hash Function Multicollisions ###
 - **Good reference:** https://www.iacr.org/archive/crypto2004/31520306/multicollisions.pdf
 
 -  **WHAT TO DO?**
@@ -530,7 +530,7 @@
 	+ Here's how calling h(x) i times can generate 2^i colliding messages
 		+  E.g: i = 2
 ![](./pics/7_52.png)
-###7.53. Kelsey and Schneier's Expandable Messages###
+### 7.53. Kelsey and Schneier's Expandable Messages ###
 - **GOAL:** find x' such that H(x') = H(x) = y 
 
 - **GOOD reference** (part 4.2 - long-Message Attacks with Expandable Messages): https://www.schneier.com/academic/paperfiles/paper-preimages.pdf
@@ -545,7 +545,7 @@
     - Step 2: Hash M and generate a map of intermediate hash states to the block indices that they correspond to
     - Step 3: Find a single-block "bridge" to intermediate state in map
     - Step 4: Generate a prefix of the right length such that len(prefix || bridge || M[i..]) = len(M)
-###7.54. Kelsey and Kohno's Nostradamus Attack###
+### 7.54. Kelsey and Kohno's Nostradamus Attack ###
 - **GOOD reference:** https://eprint.iacr.org/2005/281.pdf
 - **GOAL:** make a prediction about some event that hashes to some output H and after the event has passed, create a correct "prediction" that also hashes to H, thus convincing people that we knew the results of the event beforehand
 - **STEPS:**
@@ -554,10 +554,9 @@
 ![](./pics/7_54.png)
 	- Step 3: You need to commit to some length to encode in the padding. Make sure it's long enough to accommodate your actual message, this suffix, and a little bit of glue to join them up. Hash this padding block using the state from step 2
 
-###7.55. MD4 Collisions###
+### 7.55. MD4 Collisions ###
 - **GOOD reference:** https://fortenf.org/e/crypto/2017/09/10/md4-collisions.html
 
-- **NOTE:** most of this isn't my code
 - **GOAL:** Given a message block M (I use urandom), find a message block M', differing only in a few bits, that will collide with it in hash value generated by MD4. Just so long as a short set of conditions holds true for M.
 	- Conditions? 
 ![](./pics/conditions.png)
@@ -565,7 +564,7 @@
      - Enforce those conditions for 3 rounds of MD4 compression function
      - In each round, iterate over each word in the message block sequentially and mix it into the state. (careful not to stomp on any of the previous round's conditions)
 	 - Once you've adequately massaged M, you can simply generate M' by flipping a few bits and test for a collision
-###7.56. RC4 Single-Byte Biases ###
+### 7.56. RC4 Single-Byte Biases ###
 - **GOOD reference:** http://www.isg.rhul.ac.uk/tls/RC4biases.pdf#figure.2
 - **WHAT WE HAVE?**
     - **An oracle:**
